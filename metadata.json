@@ -1,0 +1,6 @@
+{
+  "name": "AI Scratch Notes",
+  "description": "Convert handwritten or typed scratch notes into AI-ready prompts with dictionary definition lookup and context generation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
