@@ -9,6 +9,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.*
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
@@ -64,7 +68,7 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme(darkTheme = isDark, dynamicColor = false) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = if (isDark) Color(0xFF121115) else Color(0xFFFDF8F6)
+                    color = if (isDark) Color(0xFF121212) else Color(0xFFF4F4F6)
                 ) {
                     AppScreenRouter(viewModel = viewModel, isDark = isDark)
                 }
@@ -102,9 +106,9 @@ fun AppScreenRouter(viewModel: MainViewModel, isDark: Boolean) {
 // ==========================================
 @Composable
 fun CalibrationIntroScreen(viewModel: MainViewModel, isDark: Boolean) {
-    val paperColor = if (isDark) Color(0xFF232128) else Color(0xFFFFF7F3)
-    val textColor = if (isDark) Color(0xFFE6E1E5) else Color(0xFF1D1B20)
-    val accentColor = if (isDark) Color(0xFFD0BCFF) else Color(0xFF6750A4)
+    val paperColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+    val textColor = if (isDark) Color(0xFFE5E5E5) else Color(0xFF1C1C1C)
+    val accentColor = if (isDark) Color(0xFFF37B43) else Color(0xFFD45E27)
 
     Box(
         modifier = Modifier
@@ -210,9 +214,9 @@ fun CalibrationSentencesScreen(viewModel: MainViewModel, isDark: Boolean) {
 
     val currentSentence = viewModel.calibrationSentences[currentIndex]
 
-    val paperColor = if (isDark) Color(0xFF232128) else Color(0xFFFFF7F3)
-    val textColor = if (isDark) Color(0xFFE6E1E5) else Color(0xFF1D1B20)
-    val accentColor = if (isDark) Color(0xFFD0BCFF) else Color(0xFF6750A4)
+    val paperColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+    val textColor = if (isDark) Color(0xFFE5E5E5) else Color(0xFF1C1C1C)
+    val accentColor = if (isDark) Color(0xFFF37B43) else Color(0xFFD45E27)
 
     var width by remember { mutableStateOf(0) }
     var height by remember { mutableStateOf(0) }
@@ -222,7 +226,7 @@ fun CalibrationSentencesScreen(viewModel: MainViewModel, isDark: Boolean) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(if (isDark) Color(0xFF121115) else Color(0xFFFDF8F6))
+                    .background(if (isDark) Color(0xFF121212) else Color(0xFFF4F4F6))
                     .padding(horizontal = 24.dp, vertical = 16.dp)
                     .statusBarsPadding()
             ) {
@@ -303,7 +307,7 @@ fun CalibrationSentencesScreen(viewModel: MainViewModel, isDark: Boolean) {
                     .background(paperColor, shape = RoundedCornerShape(16.dp))
                     .border(
                         1.dp,
-                        if (isDark) Color(0xFF383541) else Color(0xFFEADDFF),
+                        if (isDark) Color(0xFF2D2D2D) else Color(0xFFE0E0E0),
                         shape = RoundedCornerShape(16.dp)
                     )
                     .clip(RoundedCornerShape(16.dp))
@@ -464,18 +468,81 @@ fun CalibrationSentencesScreen(viewModel: MainViewModel, isDark: Boolean) {
 }
 
 // ==========================================
+// ANIMATED TICK MARK
+// ==========================================
+@Composable
+fun AnimatedTickMark(modifier: Modifier = Modifier) {
+    var animationPlayed by remember { mutableStateOf(false) }
+    val progress = animateFloatAsState(
+        targetValue = if (animationPlayed) 1f else 0f,
+        animationSpec = tween(durationMillis = 800, easing = LinearOutSlowInEasing),
+        label = "TickProgress"
+    )
+    LaunchedEffect(Unit) {
+        animationPlayed = true
+    }
+
+    Canvas(modifier = modifier.size(100.dp)) {
+        val center = Offset(size.width / 2, size.height / 2)
+        val radius = size.width / 2 - 4.dp.toPx()
+
+        // Background circle with success green color
+        drawCircle(
+            color = Color(0xFF4CAF50),
+            radius = radius,
+            center = center,
+            style = Fill
+        )
+
+        // Draw checkmark lines
+        val path = Path()
+        val startX = size.width * 0.30f
+        val startY = size.height * 0.50f
+        
+        val midX = size.width * 0.45f
+        val midY = size.height * 0.65f
+        
+        val endX = size.width * 0.70f
+        val endY = size.height * 0.35f
+
+        path.moveTo(startX, startY)
+        
+        val progressVal = progress.value
+        if (progressVal > 0f) {
+            if (progressVal <= 0.4f) {
+                val p = progressVal / 0.4f
+                val curX = startX + (midX - startX) * p
+                val curY = startY + (midY - startY) * p
+                path.lineTo(curX, curY)
+            } else {
+                path.lineTo(midX, midY)
+                val p = (progressVal - 0.4f) / 0.6f
+                val curX = midX + (endX - midX) * p
+                val curY = midY + (endY - midY) * p
+                path.lineTo(curX, curY)
+            }
+            
+            drawPath(
+                path = path,
+                color = Color.White,
+                style = Stroke(
+                    width = 8.dp.toPx(),
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round
+                )
+            )
+        }
+    }
+}
+
+// ==========================================
 // CALIBRATION COMPLETE SCREEN
 // ==========================================
 @Composable
 fun CalibrationCompleteScreen(viewModel: MainViewModel, isDark: Boolean) {
-    val paperColor = if (isDark) Color(0xFF232128) else Color(0xFFFFF7F3)
-    val textColor = if (isDark) Color(0xFFE6E1E5) else Color(0xFF1D1B20)
-    val accentColor = if (isDark) Color(0xFFD0BCFF) else Color(0xFF6750A4)
-
-    val profile by viewModel.handwritingProfileState.collectAsState()
-    val slant by viewModel.finalSlant.collectAsState()
-    val spacing by viewModel.finalSpacing.collectAsState()
-    val neatness by viewModel.finalNeatness.collectAsState()
+    val paperColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+    val textColor = if (isDark) Color(0xFFE5E5E5) else Color(0xFF1C1C1C)
+    val accentColor = if (isDark) Color(0xFFF37B43) else Color(0xFFD45E27)
 
     Box(
         modifier = Modifier
@@ -484,7 +551,9 @@ fun CalibrationCompleteScreen(viewModel: MainViewModel, isDark: Boolean) {
         contentAlignment = Alignment.Center
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
             colors = CardDefaults.cardColors(containerColor = paperColor),
             shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
@@ -492,118 +561,26 @@ fun CalibrationCompleteScreen(viewModel: MainViewModel, isDark: Boolean) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .background(Color(0xFF4CAF50).copy(alpha = 0.15f), shape = CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Success check",
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(44.dp)
-                    )
-                }
+                // Centered Tick Mark animation
+                AnimatedTickMark()
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                Text(
-                    text = "Calibration Complete!",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Serif,
-                    color = textColor
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
+                // Display the success message below the tick mark
                 Text(
                     text = "Your personalized handwriting calibration metrics profile is successfully configured.",
-                    fontSize = 14.sp,
-                    color = textColor.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = textColor,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
-
-                HorizontalDivider(color = textColor.copy(alpha = 0.1f))
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Profile parameters layout
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            "SLANT",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = textColor.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            slant,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = accentColor
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            "SPACING",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = textColor.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            spacing,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = accentColor
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            "NEATNESS",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = textColor.copy(alpha = 0.5f)
-                        )
-                        Text(
-                            "$neatness/10",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = accentColor
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                if (profile?.calibrationReport != null) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = if (isDark) Color(0xFF1B191F) else Color(0xFFF7F2FA)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = profile?.calibrationReport ?: "",
-                            fontSize = 13.sp,
-                            color = textColor.copy(alpha = 0.8f),
-                            fontStyle = FontStyle.Italic,
-                            modifier = Modifier.padding(14.dp),
-                            lineHeight = 18.sp
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
                     onClick = { viewModel.navigateTo("main_editor") },
@@ -616,7 +593,7 @@ fun CalibrationCompleteScreen(viewModel: MainViewModel, isDark: Boolean) {
                     Text(
                         "Start Writing Notes",
                         fontWeight = FontWeight.Bold,
-                        color = if (isDark) Color.Black else Color.White
+                        color = Color.White
                     )
                 }
             }
@@ -645,9 +622,9 @@ fun MainEditorScreen(viewModel: MainViewModel, isDark: Boolean) {
     val isGeneratingContext by viewModel.isGeneratingContext.collectAsState()
     val isGeneratingPrompt by viewModel.isGeneratingPrompt.collectAsState()
 
-    val paperColor = if (isDark) Color(0xFF232128) else Color(0xFFFFF7F3)
-    val textColor = if (isDark) Color(0xFFE6E1E5) else Color(0xFF1D1B20)
-    val accentColor = if (isDark) Color(0xFFD0BCFF) else Color(0xFF6750A4)
+    val paperColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
+    val textColor = if (isDark) Color(0xFFE5E5E5) else Color(0xFF1C1C1C)
+    val accentColor = if (isDark) Color(0xFFF37B43) else Color(0xFFD45E27)
 
     val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
@@ -679,7 +656,7 @@ fun MainEditorScreen(viewModel: MainViewModel, isDark: Boolean) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isDark) Color(0xFF121115) else Color(0xFFFDF8F6)
+                    containerColor = if (isDark) Color(0xFF121212) else Color(0xFFF4F4F6)
                 ),
                 modifier = Modifier.statusBarsPadding()
             )
@@ -688,7 +665,7 @@ fun MainEditorScreen(viewModel: MainViewModel, isDark: Boolean) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(if (isDark) Color(0xFF121115) else Color(0xFFFDF8F6))
+                    .background(if (isDark) Color(0xFF121212) else Color(0xFFF4F4F6))
                     .navigationBarsPadding()
                     .padding(16.dp)
             ) {
@@ -735,7 +712,7 @@ fun MainEditorScreen(viewModel: MainViewModel, isDark: Boolean) {
                 }
             }
         },
-        containerColor = if (isDark) Color(0xFF121115) else Color(0xFFFDF8F6)
+        containerColor = if (isDark) Color(0xFF121212) else Color(0xFFF4F4F6)
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -827,7 +804,7 @@ fun MainEditorScreen(viewModel: MainViewModel, isDark: Boolean) {
                             .background(paperColor, shape = RoundedCornerShape(16.dp))
                             .border(
                                 1.dp,
-                                if (isDark) Color(0xFF383541) else Color(0xFFEADDFF),
+                                if (isDark) Color(0xFF2D2D2D) else Color(0xFFE0E0E0),
                                 shape = RoundedCornerShape(16.dp)
                             )
                             .clip(RoundedCornerShape(16.dp))
@@ -1130,7 +1107,7 @@ fun MainEditorScreen(viewModel: MainViewModel, isDark: Boolean) {
                         .fillMaxWidth()
                         .padding(bottom = 24.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isDark) Color(0xFF2B2930) else Color(0xFFFFF7F3)
+                        containerColor = if (isDark) Color(0xFF242424) else Color(0xFFFCF5F1)
                     ),
                     shape = RoundedCornerShape(16.dp),
                     border = BorderStroke(1.dp, accentColor.copy(alpha = 0.25f))
@@ -1234,9 +1211,9 @@ fun NotesListScreen(viewModel: MainViewModel, isDark: Boolean) {
     val notes by viewModel.allNotes.collectAsState()
     val query by viewModel.searchQuery.collectAsState()
 
-    val textColor = if (isDark) Color(0xFFE6E1E5) else Color(0xFF1D1B20)
-    val accentColor = if (isDark) Color(0xFFD0BCFF) else Color(0xFF6750A4)
-    val paperColor = if (isDark) Color(0xFF232128) else Color(0xFFFFF7F3)
+    val textColor = if (isDark) Color(0xFFE5E5E5) else Color(0xFF1C1C1C)
+    val accentColor = if (isDark) Color(0xFFF37B43) else Color(0xFFD45E27)
+    val paperColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
 
     val formatter = remember { SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault()) }
 
@@ -1245,7 +1222,7 @@ fun NotesListScreen(viewModel: MainViewModel, isDark: Boolean) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(if (isDark) Color(0xFF121115) else Color(0xFFFDF8F6))
+                    .background(if (isDark) Color(0xFF121212) else Color(0xFFF4F4F6))
                     .padding(horizontal = 16.dp)
                     .statusBarsPadding()
             ) {
@@ -1296,7 +1273,7 @@ fun NotesListScreen(viewModel: MainViewModel, isDark: Boolean) {
                 )
             }
         },
-        containerColor = if (isDark) Color(0xFF121115) else Color(0xFFFDF8F6)
+        containerColor = if (isDark) Color(0xFF121212) else Color(0xFFF4F4F6)
     ) { innerPadding ->
         if (notes.isEmpty()) {
             Box(
@@ -1425,9 +1402,9 @@ fun SettingsScreen(viewModel: MainViewModel, isDark: Boolean) {
     val settings by viewModel.userSettings.collectAsState()
     val profile by viewModel.handwritingProfileState.collectAsState()
 
-    val textColor = if (isDark) Color(0xFFE6E1E5) else Color(0xFF1D1B20)
-    val accentColor = if (isDark) Color(0xFFD0BCFF) else Color(0xFF6750A4)
-    val paperColor = if (isDark) Color(0xFF232128) else Color(0xFFFFF7F3)
+    val textColor = if (isDark) Color(0xFFE5E5E5) else Color(0xFF1C1C1C)
+    val accentColor = if (isDark) Color(0xFFF37B43) else Color(0xFFD45E27)
+    val paperColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFFFFFFF)
 
     val context = LocalContext.current
 
@@ -1436,7 +1413,7 @@ fun SettingsScreen(viewModel: MainViewModel, isDark: Boolean) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(if (isDark) Color(0xFF121115) else Color(0xFFFDF8F6))
+                    .background(if (isDark) Color(0xFF121212) else Color(0xFFF4F4F6))
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1454,7 +1431,7 @@ fun SettingsScreen(viewModel: MainViewModel, isDark: Boolean) {
                 )
             }
         },
-        containerColor = if (isDark) Color(0xFF121115) else Color(0xFFFDF8F6)
+        containerColor = if (isDark) Color(0xFF121212) else Color(0xFFF4F4F6)
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -1538,7 +1515,7 @@ fun SettingsScreen(viewModel: MainViewModel, isDark: Boolean) {
                     ) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Recalibrate", modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Re-Run Handwriting Calibration", fontWeight = FontWeight.Bold, color = if (isDark) Color.Black else Color.White)
+                        Text("Re-Run Handwriting Calibration", fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
