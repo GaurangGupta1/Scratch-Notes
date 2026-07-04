@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AI Scratch Notes — Phase 0</title>
+<style>
+  :root{
+    --paper:#FBFAF8; --card:#FFFFFF; --ink:#191D24; --graphite:#8A8F98;
+    --line:#E7E4DC; --pen:#2E43B8; --pen-soft:#EEF1FC; --red:#B3402A;
+    --slate:#14171C; --slate-text:#C8CDD6; --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);overscroll-behavior:none}
+  button{font-family:var(--sans);cursor:pointer;border:none;background:none;color:var(--ink)}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+
+  /* ---------- list view ---------- */
+  #listView{max-width:920px;margin:0 auto;padding:34px 22px 60px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--graphite);text-transform:uppercase}
+  .masthead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:18px}
+  .wordmark{font-family:var(--serif);font-size:34px;line-height:1.1;letter-spacing:-.01em;margin-top:6px}
+  .wordmark .squig{display:inline-block;vertical-align:-4px;margin-right:8px}
+  .btn{border:1px solid var(--line);border-radius:999px;padding:9px 16px;font-size:14px;background:var(--card);transition:border-color .15s}
+  .btn:hover{border-color:var(--graphite)}
+  .btn.primary{background:var(--pen);border-color:var(--pen);color:#fff}
+  .btn.primary:hover{background:#243697}
+  #banner{display:none;margin:14px 0 0;padding:10px 14px;border:1px solid #E8C9A8;background:#FBF3E7;border-radius:8px;font-size:13px;color:#7A4A12}
+  #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;text-align:left;padding:0;display:block;width:100%;transition:transform .12s,border-color .12s}
+  .card:hover{transform:translateY(-1px);border-color:var(--graphite)}
+  .card .thumb{display:block;width:100%;height:118px;background:var(--paper);background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:18px 18px;border-bottom:1px solid var(--line)}
+  .card .body{padding:10px 12px 12px}
+  .card .title{font-family:var(--serif);font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .card .meta{font-family:var(--mono);font-size:11px;color:var(--graphite);margin-top:4px}
+  .card .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .del{font-size:12px;color:var(--graphite);padding:4px 8px;border-radius:6px;flex:none}
+  .del:hover{color:var(--red)}
+  .del.armed{color:#fff;background:var(--red)}
+  #empty{margin-top:60px;text-align:center;color:var(--graphite)}
+  #empty .big{font-family:var(--serif);font-size:22px;color:var(--ink)}
+  #empty p{margin-top:8px;font-size:14px}
+
+  /* ---------- canvas view ---------- */
+  #canvasView{display:none;height:100vh;height:100dvh;flex-direction:column}
+  #canvasView.open{display:flex}
+  #bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);flex-wrap:wrap}
+  #backBtn{font-size:14px;padding:7px 10px;border-radius:8px}
+  #backBtn:hover{background:var(--paper)}
+  #titleIn{font-family:var(--serif);font-size:17px;border:none;background:transparent;color:var(--ink);min-width:120px;flex:1 1 140px;padding:6px 4px;border-bottom:1px dashed transparent}
+  #titleIn:hover,#titleIn:focus{border-bottom-color:var(--line)}
+  #status{font-family:var(--mono);font-size:11px;color:var(--graphite);min-width:56px;text-align:right}
+  .tool{font-size:13px;padding:7px 11px;border-radius:8px;border:1px solid transparent;color:var(--ink)}
+  .tool:hover{background:var(--paper)}
+  .tool.on{color:var(--pen);background:var(--pen-soft);border-color:#C9D3F5}
+  .tool.danger{color:var(--graphite)}
+  .tool.danger.armed{color:#fff;background:var(--red)}
+  #stage{position:relative;flex:1;min-height:0;background:var(--paper);background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:24px 24px}
+  #ink{position:absolute;inset:0;width:100%;height:100%;touch-action:none;-webkit-user-select:none;user-select:none;cursor:crosshair}
+  #hint{position:absolute;left:0;right:0;top:42%;text-align:center;color:var(--graphite);font-size:14px;pointer-events:none;transition:opacity .3s}
+  #hint .h1{font-family:var(--serif);font-size:20px;color:var(--ink)}
+
+  /* ---------- x-ray ---------- */
+  #xray{display:none;background:var(--slate);color:var(--slate-text);font-family:var(--mono);font-size:12px;padding:10px 14px}
+  #xray.open{display:block}
+  #xray .rowx{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  #xray b{color:#fff;font-weight:600}
+  #pTrack{width:90px;height:4px;background:#2A2F38;border-radius:2px;display:inline-block;vertical-align:middle;margin-left:6px}
+  #pFill{height:4px;width:0%;background:#7C93F2;border-radius:2px}
+  #lastPt{margin-top:6px;color:#8F97A6;word-break:break-all}
+  #jsonBtn{color:#AFC0FF;border:1px solid #333B49;border-radius:6px;padding:4px 9px;font-family:var(--mono);font-size:11px;margin-left:auto}
+  #jsonBtn:hover{background:#1D2229}
+
+  /* ---------- modals ---------- */
+  .modal{display:none;position:fixed;inset:0;background:rgba(15,17,21,.55);z-index:50;align-items:center;justify-content:center;padding:20px}
+  .modal.open{display:flex}
+  .modalBox{background:var(--card);border-radius:12px;max-width:680px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+  .modalBox header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .modalBox header .t{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--graphite)}
+  #jsonPre{overflow:auto;padding:14px 16px;font-family:var(--mono);font-size:11.5px;line-height:1.55;color:var(--ink);background:var(--paper);flex:1;white-space:pre-wrap;word-break:break-all}
+  /* ---------- onboarding ---------- */
+  #onboard{max-width:760px;margin:0 auto;padding:44px 22px 60px}
+  .obTitle{font-family:var(--serif);font-size:32px;letter-spacing:-.01em;margin-top:10px}
+  .obBody{margin-top:12px;font-size:15px;line-height:1.6;color:var(--ink);max-width:560px}
+  .obBody b{color:var(--pen)}
+  #obWelcome .btn{margin-top:22px}
+  .obTop{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  .obCount{font-family:var(--mono);font-size:11px;color:var(--graphite)}
+  .obSentence{font-family:var(--serif);font-size:21px;line-height:1.45;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-top:14px}
+  .obHintTxt{font-size:13px;color:var(--graphite);margin:10px 2px 8px}
+  .obStage{position:relative;height:210px;border:1px solid var(--line);border-radius:10px;background:var(--paper);background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:22px 22px;overflow:hidden}
+  #obInk{position:absolute;inset:0;width:100%;height:100%;touch-action:none;-webkit-user-select:none;user-select:none;cursor:crosshair}
+  .obRow{display:flex;align-items:center;gap:8px;margin-top:14px}
+  .obGate{font-family:var(--mono);font-size:11px;color:var(--graphite);margin-top:10px}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+  .mastBtns{display:flex;gap:10px;align-items:center}
+  #banner.ok{border-color:#BCD9C1;background:#EEF6EF;color:#1F5B2E}
+  .profSample{margin-bottom:16px}
+  .profCap{font-family:var(--mono);font-size:11px;color:var(--graphite);margin-bottom:6px}
+  .profCanvas{display:block;width:100%;height:120px;border:1px solid var(--line);border-radius:8px;background:var(--paper);background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:18px 18px}
+  #profBody{overflow:auto;padding:14px 16px;flex:1}
+  .profMeta{font-family:var(--mono);font-size:11px;color:var(--graphite);margin-bottom:14px}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<div id="listView" style="display:none">
+  <div class="masthead">
+    <div>
+      <div class="eyebrow">Phase 0 · The Paper · prototype</div>
+      <h1 class="wordmark"><svg class="squig" width="34" height="22" viewBox="0 0 34 22" fill="none" aria-hidden="true"><path d="M2 16 C 7 4, 11 4, 13 11 C 15 18, 18 18, 21 9 C 23 4, 27 4, 32 13" stroke="#2E43B8" stroke-width="2.4" stroke-linecap="round"/></svg>AI Scratch Notes</h1>
+    </div>
+    <div class="mastBtns">
+      <button class="btn" id="profBtn">Handwriting profile</button>
+      <button class="btn primary" id="newBtn">New note</button>
+    </div>
+  </div>
+  <div id="banner"></div>
+  <div id="grid"></div>
+  <div id="empty">
+    <div class="big">Blank paper, waiting.</div>
+    <p>Tap “New note” and scribble like nobody has to read it. That’s the whole point.</p>
+  </div>
+</div>
+
+<div id="canvasView">
+  <div id="bar">
+    <button id="backBtn" aria-label="Back to notes">← Notes</button>
+    <input id="titleIn" aria-label="Note title" spellcheck="false">
+    <span id="status"></span>
+    <button class="tool" id="undoBtn">Undo</button>
+    <button class="tool" id="eraserBtn">Eraser</button>
+    <button class="tool" id="xrayBtn">X-ray</button>
+    <button class="tool danger" id="clearBtn">Clear</button>
+  </div>
+  <div id="stage">
+    <canvas id="ink"></canvas>
+    <div id="hint"><div class="h1">This page is yours.</div>Pen, finger, or mouse — just write.</div>
+  </div>
+  <div id="xray">
+    <div class="rowx">
+      <span>strokes <b id="xStrokes">0</b></span>
+      <span>points <b id="xPoints">0</b></span>
+      <span>input <b id="xInput">—</b></span>
+      <span>pressure<span id="pTrack"><span id="pFill"></span></span></span>
+      <button id="jsonBtn">view raw JSON</button>
+    </div>
+    <div id="lastPt">last point: —</div>
+  </div>
+</div>
+
+<div id="onboard" style="display:none">
+  <div id="obWelcome">
+    <div class="eyebrow">First run · handwriting profile</div>
+    <h1 class="obTitle">Teach it your scratch.</h1>
+    <p class="obBody">You’ll write three short lines. Write them <b>exactly how you write when nobody has to read it</b> — fast, rough, messy. The mess is the point: it’s what the app learns to read. Neat handwriting here actually makes things worse. Together the lines cover a–z and 0–9.</p>
+    <button class="btn primary" id="obStart">Start — line 1 of 3</button>
+  </div>
+  <div id="obStep" style="display:none">
+    <div class="obTop">
+      <span class="eyebrow" id="obProgress">Line 1 of 3</span>
+      <span class="obCount" id="obCount">0 points captured</span>
+    </div>
+    <div class="obSentence" id="obSentence"></div>
+    <p class="obHintTxt">Write it below in your everyday scratch — don’t slow down for us.</p>
+    <div class="obStage"><canvas id="obInk"></canvas></div>
+    <div class="obRow">
+      <button class="tool" id="obBack">Back</button>
+      <span style="flex:1"></span>
+      <button class="tool" id="obUndo">Undo</button>
+      <button class="tool" id="obClear">Rewrite</button>
+      <button class="btn primary" id="obNext" disabled>Next</button>
+    </div>
+    <p class="obGate" id="obGate">“Next” unlocks once the full line is written.</p>
+  </div>
+</div>
+
+<div id="modal" class="modal" role="dialog" aria-modal="true" aria-label="Raw note data">
+  <div class="modalBox">
+    <header>
+      <span class="t" id="jsonTitle">what the app sees</span>
+      <span>
+        <button class="tool" id="copyBtn">Copy</button>
+        <button class="tool" id="closeModal">Close</button>
+      </span>
+    </header>
+    <pre id="jsonPre"></pre>
+  </div>
+</div>
+
+<div id="profModal" class="modal" role="dialog" aria-modal="true" aria-label="Handwriting profile">
+  <div class="modalBox">
+    <header>
+      <span class="t">handwriting profile</span>
+      <span>
+        <button class="tool" id="profJsonBtn">View raw JSON</button>
+        <button class="tool" id="profRedoBtn">Redo samples</button>
+        <button class="tool" id="closeProf">Close</button>
+      </span>
+    </header>
+    <div id="profBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id);};
+var INK="#191D24";
+
+/* ---------------- storage layer (artifact key-value store) ---------------- */
+var storageOK=!!(window.storage&&window.storage.get);
+var mem={};
+function warn(msg){var b=$("banner");b.className="";b.textContent=msg;b.style.display="block";}
+var noticeT=null;
+function notice(msg){var b=$("banner");b.className="ok";b.textContent=msg;b.style.display="block";clearTimeout(noticeT);noticeT=setTimeout(function(){if(b.className==="ok"){b.style.display="none";}},6000);}
+if(!storageOK){warn("Heads up — persistent storage isn’t available right now, so notes will live only in this session.");}
+function sGet(key){
+  if(!storageOK){return Promise.resolve(Object.prototype.hasOwnProperty.call(mem,key)?mem[key]:null);}
+  return window.storage.get(key).then(function(r){return r?r.value:null;}).catch(function(){return null;});
+}
+function sSet(key,val){
+  if(!storageOK){mem[key]=val;return Promise.resolve(true);}
+  return window.storage.set(key,val).then(function(r){
+    if(!r){storageOK=false;mem[key]=val;warn("Saving to persistent storage failed — keeping notes in memory for this session.");}
+    return true;
+  }).catch(function(){storageOK=false;mem[key]=val;warn("Saving to persistent storage failed — keeping notes in memory for this session.");return false;});
+}
+function sDel(key){
+  if(!storageOK){delete mem[key];return Promise.resolve();}
+  return window.storage.delete(key).then(function(){}).catch(function(){});
+}
+
+/* ---------------- state ---------------- */
+var index=[];
+var note=null;
+var dirty=false;
+
+function r1(v){return Math.round(v*10)/10;}
+function r3(v){return Math.round(v*1000)/1000;}
+function packStrokes(strokes){
+  return strokes.map(function(s){return {tool:"pen",points:s.points.map(function(p){return [r1(p.x),r1(p.y),Math.round(p.t),r3(p.p||0)];})};});
+}
+function serializeNote(n){
+  return JSON.stringify({id:n.id,title:n.title,created:n.created,updated:Date.now(),strokes:packStrokes(n.strokes)});
+}
+function reviveNote(json){
+  var d=JSON.parse(json);
+  return {id:d.id,title:d.title,created:d.created,
+    strokes:(d.strokes||[]).map(function(s){return {points:s.points.map(function(a){return {x:a[0],y:a[1],t:a[2],p:a[3],k:"pen"};})};})};
+}
+function countPoints(n){var c=0;for(var i=0;i<n.strokes.length;i++){c+=n.strokes[i].points.length;}return c;}
+function buildPreview(n){
+  var pts=[],i,j;
+  for(i=0;i<n.strokes.length;i++){for(j=0;j<n.strokes[i].points.length;j++){pts.push(n.strokes[i].points[j]);}}
+  if(!pts.length){return null;}
+  var minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  for(i=0;i<pts.length;i++){var p=pts[i];if(p.x<minX)minX=p.x;if(p.y<minY)minY=p.y;if(p.x>maxX)maxX=p.x;if(p.y>maxY)maxY=p.y;}
+  var w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+  var stride=Math.max(1,Math.ceil(pts.length/240));
+  var paths=[];
+  for(i=0;i<n.strokes.length;i++){
+    var s=n.strokes[i].points,path=[];
+    for(j=0;j<s.length;j+=stride){path.push(Math.round((s[j].x-minX)/w*1000),Math.round((s[j].y-minY)/h*1000));}
+    var lastIdx=s.length-1;
+    if(lastIdx>=0&&(lastIdx%stride)!==0){path.push(Math.round((s[lastIdx].x-minX)/w*1000),Math.round((s[lastIdx].y-minY)/h*1000));}
+    if(path.length>=2){paths.push(path);}
+  }
+  return {ar:w/h,paths:paths};
+}
+
+/* ---------------- index ---------------- */
+function loadIndex(){return sGet("asn:index").then(function(v){index=v?JSON.parse(v):[];});}
+function saveIndex(){return sSet("asn:index",JSON.stringify(index));}
+function upsertMeta(){
+  var meta={id:note.id,title:note.title,created:note.created,updated:Date.now(),
+    strokeN:note.strokes.length,pointN:countPoints(note),preview:buildPreview(note)};
+  var i;for(i=0;i<index.length;i++){if(index[i].id===note.id){index[i]=meta;return;}}
+  index.push(meta);
+}
+
+/* ---------------- saving ---------------- */
+var saveTimer=null;
+function setStatus(s){$("status").textContent=s;}
+function scheduleSave(){dirty=true;setStatus("saving…");clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,700);}
+function saveNow(){
+  clearTimeout(saveTimer);
+  if(!note||!dirty){return Promise.resolve();}
+  dirty=false;
+  return sSet("asn:note:"+note.id,serializeNote(note)).then(function(){
+    upsertMeta();return saveIndex();
+  }).then(function(){setStatus("saved");});
+}
+
+/* ---------------- shared drawing helpers ---------------- */
+function widthFor(p){
+  if(p.k==="pen"){var pr=Math.max(0.05,Math.min(1,p.p||0.5));return 1.1+pr*3.4;}
+  return 2.4;
+}
+function drawDot(cx,p){
+  cx.fillStyle=INK;cx.beginPath();cx.arc(p.x,p.y,widthFor(p)/2,0,6.2832);cx.fill();
+}
+function drawSeg(cx,a,b){
+  cx.strokeStyle=INK;cx.lineCap="round";cx.lineJoin="round";
+  cx.lineWidth=(widthFor(a)+widthFor(b))/2;
+  cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.stroke();
+}
+function drawQuad(cx,a,b,d){
+  var m1x=(a.x+b.x)/2,m1y=(a.y+b.y)/2,m2x=(b.x+d.x)/2,m2y=(b.y+d.y)/2;
+  cx.strokeStyle=INK;cx.lineCap="round";cx.lineJoin="round";
+  cx.lineWidth=(widthFor(b)+widthFor(d))/2;
+  cx.beginPath();cx.moveTo(m1x,m1y);cx.quadraticCurveTo(b.x,b.y,m2x,m2y);cx.stroke();
+}
+function drawSmoothTail(cx,pts){
+  var n=pts.length;
+  if(n===1){drawDot(cx,pts[0]);return;}
+  if(n===2){drawSeg(cx,pts[0],pts[1]);return;}
+  drawQuad(cx,pts[n-3],pts[n-2],pts[n-1]);
+}
+function drawStroke(cx,points){
+  var i;
+  if(!points.length){return;}
+  if(points.length===1){drawDot(cx,points[0]);return;}
+  drawSeg(cx,points[0],points[1]);
+  for(i=2;i<points.length;i++){drawQuad(cx,points[i-2],points[i-1],points[i]);}
+}
+var penSeen=false;
+
+/* ---------------- list view ---------------- */
+function fmtDate(ts){
+  try{return new Date(ts).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});}
+  catch(e){return "";}
+}
+function renderList(){
+  var g=$("grid");g.innerHTML="";
+  var sorted=index.slice().sort(function(a,b){return b.updated-a.updated;});
+  $("empty").style.display=sorted.length?"none":"block";
+  sorted.forEach(function(m){
+    var card=document.createElement("div");card.className="card";
+    var th=document.createElement("canvas");th.className="thumb";
+    var body=document.createElement("div");body.className="body";
+    var row=document.createElement("div");row.className="row";
+    var tw=document.createElement("div");tw.style.minWidth="0";
+    var t=document.createElement("div");t.className="title";t.textContent=m.title||"Untitled";
+    var meta=document.createElement("div");meta.className="meta";
+    meta.textContent=fmtDate(m.updated)+" · "+m.strokeN+" strokes · "+m.pointN+" pts";
+    var del=document.createElement("button");del.className="del";del.textContent="delete";
+    del.addEventListener("click",function(ev){
+      ev.stopPropagation();
+      if(del.classList.contains("armed")){deleteNote(m.id);}
+      else{del.classList.add("armed");del.textContent="sure?";setTimeout(function(){del.classList.remove("armed");del.textContent="delete";},2600);}
+    });
+    tw.appendChild(t);tw.appendChild(meta);row.appendChild(tw);row.appendChild(del);
+    body.appendChild(row);card.appendChild(th);card.appendChild(body);
+    card.addEventListener("click",function(){openNote(m.id);});
+    card.setAttribute("role","button");card.tabIndex=0;
+    card.addEventListener("keydown",function(ev){if(ev.key==="Enter"){openNote(m.id);}});
+    g.appendChild(card);
+    drawThumb(th,m.preview);
+  });
+}
+function drawThumb(cvs,prev){
+  var dpr=window.devicePixelRatio||1;
+  var W=cvs.clientWidth||220,H=118;
+  cvs.width=W*dpr;cvs.height=H*dpr;
+  var c=cvs.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);
+  if(!prev||!prev.paths||!prev.paths.length){return;}
+  var pad=14,aw=W-pad*2,ah=H-pad*2;
+  var scale=Math.min(aw/1000,ah/(1000/(prev.ar||1)));
+  var dw=1000*scale,dh=(1000/(prev.ar||1))*scale;
+  var ox=(W-dw)/2,oy=(H-dh)/2;
+  c.strokeStyle=INK;c.fillStyle=INK;c.lineWidth=1.6;c.lineCap="round";c.lineJoin="round";
+  prev.paths.forEach(function(path){
+    if(path.length===2){
+      c.beginPath();c.arc(ox+path[0]*(dw/1000),oy+path[1]*(dh/1000),1.2,0,6.2832);c.fill();
+      return;
+    }
+    c.beginPath();
+    for(var i=0;i<path.length;i+=2){
+      var x=ox+path[i]*(dw/1000),y=oy+path[i+1]*(dh/1000);
+      if(i===0){c.moveTo(x,y);}else{c.lineTo(x,y);}
+    }
+    c.stroke();
+  });
+}
+function deleteNote(id){
+  index=index.filter(function(m){return m.id!==id;});
+  saveIndex().then(function(){return sDel("asn:note:"+id);}).then(renderList);
+}
+function showList(){
+  $("onboard").style.display="none";
+  $("canvasView").classList.remove("open");
+  $("listView").style.display="block";
+  renderList();
+}
+
+/* ---------------- canvas view ---------------- */
+var cv=$("ink"),ctx=cv.getContext("2d");
+var drawing=false,activePointer=null,eraserOn=false,cur=null;
+var lastInputType="—";
+
+function openCanvas(){
+  $("listView").style.display="none";
+  $("onboard").style.display="none";
+  $("canvasView").classList.add("open");
+  $("titleIn").value=note.title||"";
+  setStatus(dirty?"saving…":"saved");
+  $("hint").style.opacity=countPoints(note)?0:1;
+  sizeCanvas();
+  updateXray(null);
+}
+function backToList(){
+  saveNow().then(function(){
+    note=null;
+    showList();
+  });
+}
+function newNote(){
+  var id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  note={id:id,title:"Note · "+fmtDate(Date.now()),created:Date.now(),strokes:[]};
+  dirty=true;
+  openCanvas();
+  saveNow();
+}
+function openNote(id){
+  sGet("asn:note:"+id).then(function(v){
+    if(!v){warn("Couldn’t load that note from storage.");return;}
+    note=reviveNote(v);dirty=false;openCanvas();
+  });
+}
+
+function sizeCanvas(){
+  var stage=$("stage"),r=stage.getBoundingClientRect();
+  var dpr=window.devicePixelRatio||1;
+  cv.width=Math.max(1,Math.round(r.width*dpr));
+  cv.height=Math.max(1,Math.round(r.height*dpr));
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  redrawAll();
+}
+var resizeT=null;
+window.addEventListener("resize",function(){
+  clearTimeout(resizeT);
+  resizeT=setTimeout(function(){
+    if(note){sizeCanvas();}
+    if($("onboard").style.display!=="none"&&$("obStep").style.display!=="none"){sizeObCanvas();}
+  },120);
+});
+
+function redrawAll(){
+  var r=$("stage").getBoundingClientRect();
+  ctx.clearRect(0,0,r.width,r.height);
+  if(!note){return;}
+  for(var i=0;i<note.strokes.length;i++){drawStroke(ctx,note.strokes[i].points);}
+  if(cur){drawStroke(ctx,cur.points);}
+}
+function ptFrom(ev){
+  var r=cv.getBoundingClientRect();
+  return {x:ev.clientX-r.left,y:ev.clientY-r.top,t:Date.now()-note.created,p:ev.pressure||0,k:ev.pointerType||"mouse"};
+}
+
+/* ---- eraser ---- */
+function eraseAt(p){
+  var removed=false;
+  note.strokes=note.strokes.filter(function(s){
+    for(var i=0;i<s.points.length;i++){
+      var dx=s.points[i].x-p.x,dy=s.points[i].y-p.y;
+      if(dx*dx+dy*dy<144){removed=true;return false;}
+    }
+    return true;
+  });
+  if(removed){redrawAll();scheduleSave();updateXray(p);}
+}
+
+/* ---- pointer events: note canvas ---- */
+cv.addEventListener("pointerdown",function(e){
+  if(!note){return;}
+  if(e.pointerType==="pen"){penSeen=true;}
+  if(e.pointerType==="touch"&&penSeen){return;}
+  if(drawing){return;}
+  e.preventDefault();
+  drawing=true;activePointer=e.pointerId;
+  try{cv.setPointerCapture(e.pointerId);}catch(err){}
+  $("hint").style.opacity=0;
+  var p=ptFrom(e);
+  updateXray(p);
+  if(eraserOn){eraseAt(p);return;}
+  cur={points:[p]};
+  drawDot(ctx,p);
+});
+cv.addEventListener("pointermove",function(e){
+  if(!drawing||e.pointerId!==activePointer||!note){return;}
+  e.preventDefault();
+  var ce=e.getCoalescedEvents?e.getCoalescedEvents():null;
+  var evs=(ce&&ce.length)?ce:[e];
+  for(var i=0;i<evs.length;i++){
+    var p=ptFrom(evs[i]);
+    if(eraserOn){eraseAt(p);continue;}
+    cur.points.push(p);
+    drawSmoothTail(ctx,cur.points);
+  }
+  updateXray(ptFrom(e));
+});
+function endStroke(e){
+  if(e.pointerId!==activePointer){return;}
+  drawing=false;activePointer=null;
+  if(!eraserOn&&cur&&note){
+    note.strokes.push(cur);
+    cur=null;
+    scheduleSave();
+  }
+  updateXray(null);
+}
+cv.addEventListener("pointerup",endStroke);
+cv.addEventListener("pointercancel",endStroke);
+cv.addEventListener("contextmenu",function(e){e.preventDefault();});
+
+/* ---- toolbar ---- */
+$("undoBtn").addEventListener("click",function(){
+  if(!note||!note.strokes.length){return;}
+  note.strokes.pop();redrawAll();scheduleSave();updateXray(null);
+});
+$("eraserBtn").addEventListener("click",function(){
+  eraserOn=!eraserOn;
+  this.classList.toggle("on",eraserOn);
+  cv.style.cursor=eraserOn?"cell":"crosshair";
+});
+var clearArm=null;
+$("clearBtn").addEventListener("click",function(){
+  var b=this;
+  if(b.classList.contains("armed")){
+    note.strokes=[];redrawAll();scheduleSave();updateXray(null);
+    b.classList.remove("armed");b.textContent="Clear";clearTimeout(clearArm);
+  }else{
+    b.classList.add("armed");b.textContent="Sure?";
+    clearArm=setTimeout(function(){b.classList.remove("armed");b.textContent="Clear";},2600);
+  }
+});
+$("xrayBtn").addEventListener("click",function(){
+  var open=$("xray").classList.toggle("open");
+  this.classList.toggle("on",open);
+  sizeCanvas();
+});
+$("backBtn").addEventListener("click",backToList);
+$("newBtn").addEventListener("click",newNote);
+$("titleIn").addEventListener("input",function(){if(note){note.title=this.value;scheduleSave();}});
+document.addEventListener("keydown",function(e){
+  if((e.metaKey||e.ctrlKey)&&(e.key==="z"||e.key==="Z")){
+    if($("onboard").style.display!=="none"&&$("obStep").style.display!=="none"){e.preventDefault();obUndo();return;}
+    if(note){e.preventDefault();$("undoBtn").click();}
+  }
+});
+
+/* ---- x-ray ---- */
+function updateXray(p){
+  if(!note){return;}
+  $("xStrokes").textContent=note.strokes.length+(cur?1:0);
+  $("xPoints").textContent=countPoints(note)+(cur?cur.points.length:0);
+  if(p){
+    lastInputType=p.k==="pen"?"Pen":(p.k==="touch"?"Finger":"Mouse");
+    $("xInput").textContent=lastInputType;
+    $("pFill").style.width=Math.round(Math.max(0,Math.min(1,p.p||0))*100)+"%";
+    $("lastPt").textContent="last point: (x "+r1(p.x)+", y "+r1(p.y)+", t "+Math.round(p.t)+"ms, pressure "+r3(p.p||0)+")";
+  }
+}
+
+/* ---- JSON modal ---- */
+function openJson(title,jsonStr){
+  var pretty;
+  try{pretty=JSON.stringify(JSON.parse(jsonStr),null,1);}catch(e){pretty=jsonStr;}
+  if(pretty.length>60000){pretty=pretty.slice(0,60000)+"\n… truncated for display — the full data is saved.";}
+  $("jsonTitle").textContent=title;
+  $("jsonPre").textContent=pretty;
+  $("modal").classList.add("open");
+}
+$("jsonBtn").addEventListener("click",function(){
+  saveNow().then(function(){openJson("what the app sees",serializeNote(note));});
+});
+$("closeModal").addEventListener("click",function(){$("modal").classList.remove("open");});
+$("modal").addEventListener("click",function(e){if(e.target===this){this.classList.remove("open");}});
+$("copyBtn").addEventListener("click",function(){
+  var b=this,txt=$("jsonPre").textContent;
+  function done(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy";},1500);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done).catch(done);}
+  else{done();}
+});
+
+/* ---------------- onboarding ---------------- */
+var OB_LINES=[
+  "The quick brown fox jumps over the lazy dog 9172",
+  "The lazy brown dog quickly jumps over the brown fox 056",
+  "The brown jumps quickly over the lazy dog and fox 348"
+];
+var ob={i:0,samples:[null,null,null]};
+var obCv=$("obInk"),obCtx=obCv.getContext("2d");
+var obDrawing=false,obPointer=null,obCur=null;
+
+function startOnboarding(){
+  $("listView").style.display="none";
+  $("canvasView").classList.remove("open");
+  $("onboard").style.display="block";
+  $("obWelcome").style.display="block";
+  $("obStep").style.display="none";
+}
+function sizeObCanvas(){
+  var stage=obCv.parentElement,r=stage.getBoundingClientRect();
+  var dpr=window.devicePixelRatio||1;
+  obCv.width=Math.max(1,Math.round(r.width*dpr));
+  obCv.height=Math.max(1,Math.round(r.height*dpr));
+  obCtx.setTransform(dpr,0,0,dpr,0,0);
+  obRedraw();
+}
+function obRedraw(){
+  var r=obCv.parentElement.getBoundingClientRect();
+  obCtx.clearRect(0,0,r.width,r.height);
+  var s=ob.samples[ob.i];
+  if(!s){return;}
+  for(var i=0;i<s.strokes.length;i++){drawStroke(obCtx,s.strokes[i].points);}
+  if(obCur){drawStroke(obCtx,obCur.points);}
+}
+function obPoints(){
+  var s=ob.samples[ob.i],c=0;
+  if(s){for(var i=0;i<s.strokes.length;i++){c+=s.strokes[i].points.length;}}
+  if(obCur){c+=obCur.points.length;}
+  return c;
+}
+function obGate(){
+  var s=ob.samples[ob.i];
+  var ok=s&&s.strokes.length>=5&&obPoints()>=250;
+  var btn=$("obNext");
+  if(ok){btn.removeAttribute("disabled");}else{btn.setAttribute("disabled","");}
+  $("obGate").style.display=ok?"none":"block";
+  $("obCount").textContent=obPoints()+" points captured";
+}
+function enterLine(){
+  $("obWelcome").style.display="none";
+  $("obStep").style.display="block";
+  if(!ob.samples[ob.i]){ob.samples[ob.i]={text:OB_LINES[ob.i],startedAt:Date.now(),strokes:[]};}
+  $("obProgress").textContent="Line "+(ob.i+1)+" of 3";
+  $("obSentence").textContent="“"+OB_LINES[ob.i]+"”";
+  $("obNext").textContent=ob.i===2?"Finish":"Next";
+  sizeObCanvas();
+  obGate();
+}
+function obPtFrom(ev){
+  var r=obCv.getBoundingClientRect();
+  return {x:ev.clientX-r.left,y:ev.clientY-r.top,t:Date.now()-ob.samples[ob.i].startedAt,p:ev.pressure||0,k:ev.pointerType||"mouse"};
+}
+obCv.addEventListener("pointerdown",function(e){
+  if(e.pointerType==="pen"){penSeen=true;}
+  if(e.pointerType==="touch"&&penSeen){return;}
+  if(obDrawing){return;}
+  e.preventDefault();
+  obDrawing=true;obPointer=e.pointerId;
+  try{obCv.setPointerCapture(e.pointerId);}catch(err){}
+  var p=obPtFrom(e);
+  obCur={points:[p]};
+  drawDot(obCtx,p);
+  obGate();
+});
+obCv.addEventListener("pointermove",function(e){
+  if(!obDrawing||e.pointerId!==obPointer){return;}
+  e.preventDefault();
+  var ce=e.getCoalescedEvents?e.getCoalescedEvents():null;
+  var evs=(ce&&ce.length)?ce:[e];
+  for(var i=0;i<evs.length;i++){
+    obCur.points.push(obPtFrom(evs[i]));
+    drawSmoothTail(obCtx,obCur.points);
+  }
+  $("obCount").textContent=obPoints()+" points captured";
+});
+function obEnd(e){
+  if(e.pointerId!==obPointer){return;}
+  obDrawing=false;obPointer=null;
+  if(obCur){
+    ob.samples[ob.i].strokes.push(obCur);
+    obCur=null;
+  }
+  obGate();
+}
+obCv.addEventListener("pointerup",obEnd);
+obCv.addEventListener("pointercancel",obEnd);
+obCv.addEventListener("contextmenu",function(e){e.preventDefault();});
+function obUndo(){
+  var s=ob.samples[ob.i];
+  if(!s||!s.strokes.length){return;}
+  s.strokes.pop();obRedraw();obGate();
+}
+$("obStart").addEventListener("click",function(){ob.i=0;enterLine();});
+$("obUndo").addEventListener("click",obUndo);
+$("obClear").addEventListener("click",function(){
+  ob.samples[ob.i]={text:OB_LINES[ob.i],startedAt:Date.now(),strokes:[]};
+  obRedraw();obGate();
+});
+$("obBack").addEventListener("click",function(){
+  if(ob.i>0){ob.i--;enterLine();}
+  else{$("obStep").style.display="none";$("obWelcome").style.display="block";}
+});
+$("obNext").addEventListener("click",function(){
+  if(ob.i<2){ob.i++;enterLine();}
+  else{finishOnboarding();}
+});
+function finishOnboarding(){
+  var profile={version:1,collectedAt:Date.now(),coverage:"a-z, 0-9",
+    samples:ob.samples.map(function(s){return {text:s.text,startedAt:s.startedAt,strokes:packStrokes(s.strokes)};})};
+  sSet("asn:profile",JSON.stringify(profile)).then(function(){
+    showList();
+    notice("Handwriting profile seeded — a–z and 0–9 captured. It sharpens with every note you write.");
+  });
+}
+
+/* ---------------- profile viewer ---------------- */
+function profTotalPoints(prof){
+  var c=0;
+  prof.samples.forEach(function(s){s.strokes.forEach(function(st){c+=st.points.length;});});
+  return c;
+}
+function renderProfile(prof){
+  var body=$("profBody");body.innerHTML="";
+  var meta=document.createElement("div");meta.className="profMeta";
+  meta.textContent="collected "+fmtDate(prof.collectedAt)+" · coverage "+prof.coverage+" · "+profTotalPoints(prof)+" points";
+  body.appendChild(meta);
+  prof.samples.forEach(function(s){
+    var wrap=document.createElement("div");wrap.className="profSample";
+    var cap=document.createElement("div");cap.className="profCap";cap.textContent="“"+s.text+"”";
+    var cvs=document.createElement("canvas");cvs.className="profCanvas";
+    wrap.appendChild(cap);wrap.appendChild(cvs);body.appendChild(wrap);
+    var dpr=window.devicePixelRatio||1;
+    var W=cvs.clientWidth||600,H=120;
+    cvs.width=W*dpr;cvs.height=H*dpr;
+    var c=cvs.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);
+    var pts=[];
+    s.strokes.forEach(function(st){st.points.forEach(function(a){pts.push(a);});});
+    if(!pts.length){return;}
+    var minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+    pts.forEach(function(a){if(a[0]<minX)minX=a[0];if(a[1]<minY)minY=a[1];if(a[0]>maxX)maxX=a[0];if(a[1]>maxY)maxY=a[1];});
+    var w=Math.max(1,maxX-minX),h=Math.max(1,maxY-minY);
+    var pad=12,scale=Math.min((W-pad*2)/w,(H-pad*2)/h,1.4);
+    var ox=(W-w*scale)/2,oy=(H-h*scale)/2;
+    s.strokes.forEach(function(st){
+      var mapped=st.points.map(function(a){return {x:ox+(a[0]-minX)*scale,y:oy+(a[1]-minY)*scale,p:a[3],k:"pen"};});
+      drawStroke(c,mapped);
+    });
+  });
+}
+var cachedProfile=null;
+$("profBtn").addEventListener("click",function(){
+  sGet("asn:profile").then(function(v){
+    if(!v){warn("No handwriting profile yet — it’s collected on first run.");return;}
+    try{cachedProfile=JSON.parse(v);}catch(e){warn("Couldn’t read the handwriting profile.");return;}
+    $("profModal").classList.add("open");
+    renderProfile(cachedProfile);
+  });
+});
+$("closeProf").addEventListener("click",function(){$("profModal").classList.remove("open");});
+$("profModal").addEventListener("click",function(e){if(e.target===this){this.classList.remove("open");}});
+$("profJsonBtn").addEventListener("click",function(){
+  if(!cachedProfile){return;}
+  $("profModal").classList.remove("open");
+  openJson("handwriting profile · raw",JSON.stringify(cachedProfile));
+});
+var redoArm=null;
+$("profRedoBtn").addEventListener("click",function(){
+  var b=this;
+  if(b.classList.contains("armed")){
+    b.classList.remove("armed");b.textContent="Redo samples";clearTimeout(redoArm);
+    $("profModal").classList.remove("open");
+    ob={i:0,samples:[null,null,null]};
+    startOnboarding();
+  }else{
+    b.classList.add("armed");b.textContent="Sure? Rewrites all 3";
+    redoArm=setTimeout(function(){b.classList.remove("armed");b.textContent="Redo samples";},2600);
+  }
+});
+
+/* ---- boot ---- */
+Promise.all([loadIndex(),sGet("asn:profile")]).then(function(res){
+  if(res[1]){
+    $("listView").style.display="block";
+    renderList();
+  }else{
+    startOnboarding();
+  }
+});
+})();
+
+</script>
+</body>
+</html>
